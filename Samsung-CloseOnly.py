@@ -163,7 +163,8 @@ def build_test_truth(series_scaled, window=252, horizon=30):
         Y.append(series_scaled[i+window : i+window+horizon, 0])
     return np.array(Y)
 
-y_test_30 = build_test_truth(test_scaled, window, 30)
+horizon = 30
+y_test_30 = build_test_truth(test_scaled, window, horizon)
 
 pred_list = []
 naive_list = []
@@ -172,10 +173,10 @@ for i in range(len(y_test_30)):
     pred_scaled = recursive_predict_30(seq, window)
     pred_list.append(pred_scaled)
     naive_last = seq[-1]
-    naive_list.append(np.repeat(naive_last, 30))
+    naive_list.append(np.repeat(naive_last, horizon))
 
-pred_scaled_all  = np.array(pred_list)
-naive_scaled_all = np.array(naive_list)
+pred_scaled_all  = np.array(pred_list)   # (N_test, 30)
+naive_scaled_all = np.array(naive_list)  # (N_test, 30)
 
 def inv(flat):
     return scaler.inverse_transform(flat.reshape(-1,1))[:,0]
@@ -184,11 +185,41 @@ true_flat  = inv(y_test_30.reshape(-1))
 pred_flat  = inv(pred_scaled_all.reshape(-1))
 naive_flat = inv(naive_scaled_all.reshape(-1))
 
+N_test = y_test_30.shape[0]
+y_test_real  = true_flat.reshape(N_test, horizon)
+y_pred_real  = pred_flat.reshape(N_test, horizon)
+y_naive_real = naive_flat.reshape(N_test, horizon)
+
 rmse = lambda a,b: np.sqrt(mean_squared_error(a,b))
 
-print("\n[TEST RMSE (Samsung)]")
+print("\n[TEST RMSE (Samsung, 30-step path)]")
 print("Naive:", rmse(true_flat, naive_flat))
 print("LSTM :", rmse(true_flat, pred_flat))
+
+# ---------- Direction accuracy (30-day ahead) ----------
+dates_all   = df.index
+prices_real = df["price"].values
+
+origin_indices = [val_end + i + window - 1 for i in range(N_test)]
+origin_prices  = prices_real[origin_indices]
+
+real_30  = y_test_real[:, -1]
+pred_30  = y_pred_real[:, -1]
+naive_30 = y_naive_real[:, -1]
+
+real_dir  = np.sign(real_30  - origin_prices)
+pred_dir  = np.sign(pred_30  - origin_prices)
+naive_dir = np.sign(naive_30 - origin_prices)
+
+def direction_accuracy(true_dir, pred_dir):
+    return np.mean(true_dir == pred_dir)
+
+acc_naive = direction_accuracy(real_dir, naive_dir)
+acc_lstm  = direction_accuracy(real_dir, pred_dir)
+
+print("\n[TEST Direction Accuracy (30-day ahead up/down)]")
+print("Naive:", acc_naive)
+print("LSTM :", acc_lstm)
 
 # ============================================================
 # 9. Monthly rolling 30-day ahead forecast (recursive)
@@ -198,12 +229,15 @@ prices_real  = df["price"].values
 dates_all    = df.index
 
 start_for_months = pd.Timestamp("2002-01-01")  # enough history before this
-month_ends = pd.date_range(start_for_months, dates_all[-1], freq="M")
+month_ends = pd.date_range(start_for_months, dates_all[-1], freq="ME")  # month-end
 
 month_dates = []
 real_month  = []
 pred_month  = []
 naive_month = []
+dir_real_m  = []
+dir_pred_m  = []
+dir_naive_m = []
 
 for m_end in month_ends:
     if m_end < dates_all[0] or m_end > dates_all[-1]:
@@ -214,7 +248,7 @@ for m_end in month_ends:
 
     start_i = idx + 1 - window
     future_start = idx + 1
-    target_idx = future_start + 30 - 1
+    target_idx = future_start + horizon - 1
 
     if start_i < 0 or target_idx >= n_total:
         continue
@@ -232,13 +266,28 @@ for m_end in month_ends:
     pred_month.append(pred_val)
     naive_month.append(naive_val)
 
+    base_price = prices_real[idx]
+    dir_real_m.append(np.sign(real_val - base_price))
+    dir_pred_m.append(np.sign(pred_val - base_price))
+    dir_naive_m.append(np.sign(naive_val - base_price))
+
 real_month  = np.array(real_month)
 pred_month  = np.array(pred_month)
 naive_month = np.array(naive_month)
+dir_real_m  = np.array(dir_real_m)
+dir_pred_m  = np.array(dir_pred_m)
+dir_naive_m = np.array(dir_naive_m)
 
 print("\n[Monthly 30-day RMSE (Samsung)]")
 print("Naive:", rmse(real_month, naive_month))
 print("LSTM :", rmse(real_month, pred_month))
+
+acc_naive_m = direction_accuracy(dir_real_m, dir_naive_m)
+acc_lstm_m  = direction_accuracy(dir_real_m, dir_pred_m)
+
+print("\n[Monthly 30-day Direction Accuracy (Samsung)]")
+print("Naive:", acc_naive_m)
+print("LSTM :", acc_lstm_m)
 
 # ============================================================
 # 10. Plot monthly rolling 30-day ahead forecast
@@ -250,7 +299,7 @@ plt.plot(month_dates, naive_month, label="Naive (prev month)")
 plt.xticks(rotation=45)
 plt.ylabel("Price")
 plt.xlabel("Target date (30 days ahead)")
-plt.title("Samsung Electronics - Monthly Rolling 30-Day Ahead Forecast")
+plt.title("Samsung Electronics - Monthly Rolling 30-Day Ahead Forecast (Close only)")
 plt.legend()
 plt.tight_layout()
 plt.show()
