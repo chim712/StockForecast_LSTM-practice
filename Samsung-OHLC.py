@@ -325,13 +325,17 @@ print("LSTM :", acc_lstm_month)
 # 12. Plot monthly rolling 30-day ahead forecast
 # ============================================================
 plt.figure(figsize=(10,5))
-plt.plot(month_dates, real_month,  label="Real (30d)")
-plt.plot(month_dates, pred_month,  label="LSTM (30d ahead)")
-plt.plot(month_dates, naive_month, label="Naive (prev month)")
+plt.plot(month_dates, real_month,  label="Real (30d)",
+         linestyle = '-.', marker = 's', markersize = 7)
+plt.plot(month_dates, pred_month,  label="LSTM (30d ahead)",
+         linestyle = '-', marker = 'o', markersize = 7)
+plt.plot(month_dates, naive_month, label="Naive (prev month)",
+         linestyle = '--', marker = '^', markersize = 7)
 plt.xticks(rotation=45)
 plt.ylabel("Price")
 plt.xlabel("Target date (30 days ahead)")
 plt.title("Samsung Electronics - Monthly Rolling 30-Day Ahead Forecast (OHLC input)")
 plt.legend()
 plt.tight_layout()
+plt.savefig("figure.pdf", dpi=300, bbox_inches="tight")
 plt.show()
