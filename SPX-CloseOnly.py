@@ -286,15 +286,36 @@ print("Naive:", acc_naive_m)
 print("LSTM :", acc_lstm_m)
 
 # ============================================================
+# 9-1. Save result
+# ============================================================
+
+month_dates_arr = np.array([d.strftime("%Y-%m-%d") for d in month_dates])
+
+np.savez(
+    "SPX_Close.npz",
+    y_test_real=y_test_real,
+    y_pred_real=y_pred_real,
+    y_naive_real=y_naive_real,
+    month_dates=month_dates_arr,
+    real_month=real_month,
+    pred_month=pred_month,
+    naive_month=naive_month,
+)
+
+print("Saved to spx_monthly_forecast_arrays.npz")
+
+
+
+# ============================================================
 # 10. Monthly plot (English labels)
 # ============================================================
 plt.figure(figsize=(10,5))
 plt.plot(month_dates, real_month,  label="Real (30d)",
-         linestyle = '-.', marker = 's', markersize = 7)
+         linestyle = '-.', marker = 's', markersize = 4)
 plt.plot(month_dates, pred_month,  label="LSTM (30d ahead)",
-         linestyle = '-', marker = 'o', markersize = 7)
+         linestyle = '-', marker = 'o', markersize = 4)
 plt.plot(month_dates, naive_month, label="Naive (prev month)",
-         linestyle = '--', marker = '^', markersize = 7)
+         linestyle = '--', marker = '^', markersize = 4)
 plt.xticks(rotation=45)
 plt.ylabel("Index Level")
 plt.xlabel("Target Date (30 days ahead)")
