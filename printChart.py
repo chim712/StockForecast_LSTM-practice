@@ -8,7 +8,7 @@ markSize = 4
 lineWidth = 1
 Title = "SK Hynix OHLC Input"
 
-data = np.load("Hynix_OHLC(03-24).npz", allow_pickle=True)
+data = np.load("Hyundai_OHLC.npz", allow_pickle=True)
 
 month_dates = pd.to_datetime(data["month_dates"])
 real_month  = data["real_month"]

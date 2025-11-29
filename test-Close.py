@@ -15,8 +15,8 @@ startDate = "2003-01-01"
 # ============================================================
 # 1. Load data (SPX)
 # ============================================================
-ticker = "000660.KS"
-data = yf.download(ticker, start=startDate, end="2024-04-30")
+ticker = "005930.KS"
+data = yf.download(ticker, start=startDate, end="2024-03-30")
 
 df = data[["Close"]].rename(columns={"Close": "price"})
 df = df.dropna()
@@ -313,12 +313,9 @@ print("\n\nSaved to spx_monthly_forecast_arrays.npz")
 # 10. Monthly plot (English labels)
 # ============================================================
 plt.figure(figsize=(10,5))
-plt.plot(month_dates, real_month,  label="Real (30d)",
-         linestyle = '-.', marker = 's', markersize = 4)
-plt.plot(month_dates, pred_month,  label="LSTM (30d ahead)",
-         linestyle = '-', marker = 'o', markersize = 4)
-plt.plot(month_dates, naive_month, label="Naive (prev month)",
-         linestyle = '--', marker = '^', markersize = 4)
+plt.plot(month_dates, real_month,  label="Real (30d)")
+plt.plot(month_dates, pred_month,  label="LSTM (30d ahead)")
+plt.plot(month_dates, naive_month, label="Naive (prev month)")
 plt.xticks(rotation=45)
 plt.ylabel("Index Level")
 plt.xlabel("Target Date (30 days ahead)")
